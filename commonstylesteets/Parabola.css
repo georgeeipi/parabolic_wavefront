@@ -1,0 +1,23 @@
+html{
+    margin:0%;
+/*    width: 100%; */
+}
+
+body{
+   margin:0%;
+/*   height: 100%; */
+}
+
+window{
+    width:600px;
+    height:800px;
+
+}
+
+slidercontainer{
+    width:100%
+}
+
+#parabolaCanvas1{
+
+}

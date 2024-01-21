@@ -1,0 +1,53 @@
+body{
+    text-align:center;
+}
+
+h1{
+    color:green;
+}
+
+h2{
+    color:green;
+}
+
+p{
+    width:60vw;
+    text-align:justify;
+    margin:auto;
+    margin-top:1em;
+    margin-bottom:1em;
+}
+
+canvas{
+    position:relative;
+
+    left:0;
+    top:0;
+    right:0;
+    bottom:0;
+
+    margin-top:1em;
+    margin-bottom:1em;
+    margin-left:0;
+    margin-right:0;
+}
+
+
+math {
+ /*   font-size: inherit; */
+    displaystyle:true;
+}
+
+
+.complexMath{
+/*    font-size:22px; */
+}
+
+
+@media screen and (max-width:600px){
+
+    .complexMath{
+        /* font-size:12px; */
+    }
+
+}
