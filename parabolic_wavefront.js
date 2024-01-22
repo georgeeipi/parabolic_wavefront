@@ -1,3 +1,17 @@
+/*
+parabolic_wavefront.js
+23/01/2024
+author George Galanis, Melbourne Australia
+
+Copyright (c) 2024 George Galanis
+
+This file is part of the Parabolic Wavefront software
+
+The Wavefront software, HTML, CSS, JavaScript is free.
+    You can redistribute it or modify it under the terms of the CNU License 3.0 of the License.
+    This software is published without any Warranty or implied Warranty.
+*/
+
 /****************************************************************
  *****************           Window Management      *************
  ****************************************************************/
@@ -108,6 +122,7 @@ function getIntensitySpan(){
 
 
 const sourceGrabSize=80;
+
 function mousemovedCtx1(event){
     var Xwin; var Ywin;
     var Mworld = {x:0.0, y:0.0};
@@ -115,9 +130,10 @@ function mousemovedCtx1(event){
     var MS = new Vector2D(0,0);
     var Fdist;
 
+    var BoundingRect = parabolaCanvas.getBoundingClientRect();
 
-    Xwin = event.clientX - ctx.canvas.offsetLeft;
-    Ywin = event.clientY - ctx.canvas.offsetTop;
+    Xwin = event.clientX - BoundingRect.left;
+    Ywin = event.clientY - BoundingRect.top;
 
     Mworld = wv.convertWinToWorld(Xwin,Ywin);
     Mw.set(Mworld.x,Mworld.y);
