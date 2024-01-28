@@ -12,6 +12,9 @@ The Wavefront software, HTML, CSS, JavaScript is free.
     This software is published without any Warranty or implied Warranty.
 */
 
+const degToRad = Math.PI/180.0;
+
+
 /****************************************************************
  *****************           Window Management      *************
  ****************************************************************/
@@ -24,18 +27,189 @@ window.onresize=function(){
     init();
 }
 
-const degToRad = Math.PI/180.0;
 
-const parabolaCanvas = document.getElementById("parabolaCanvas");
-const ctx = parabolaCanvas.getContext("2d");
+const can=document.getElementById("parabolaCanvas");
+const ctx = can.getContext("2d");
 
-ctx.canvas.addEventListener('mousemove', mousemovedCtx1);
-ctx.canvas.addEventListener('mousedown', mousedownCtx1);
-ctx.canvas.addEventListener("mouseup", mouseupCtx1);
 
-var sourceHover=false;
-var sourceGrabbed = false;
+// mouse canvas routines
 
+ctx.canvas.addEventListener('mousemove', mousemovedCtx);
+ctx.canvas.addEventListener('mousedown', mousedownCtx);
+ctx.canvas.addEventListener("mouseup", mouseupCtx);
+
+
+// touch emulation routines, used when testing touch routines with a mouse
+/*
+ctx.canvas.addEventListener('mousemove', touchMovedMouseEmulationCtx);
+ctx.canvas.addEventListener('mousedown', touchdownMouseEmulationCtx);
+ctx.canvas.addEventListener("mouseup", touchEndMouseEmulationCtx);
+*/
+
+can.addEventListener('touchmove', touchMovedCtx);
+can.addEventListener('touchstart', touchStartCtx);
+can.addEventListener('touchend', touchEndCtx);
+
+
+/*************************Common Drag Source functions **********/
+function WorldVectorToCanvasVector(WorldVec){
+    let CanvasPos = {x:0, y:0}
+    var CanvasVec = new Vector2D(0,0);
+
+    CanvasPos = wv.convertWorldToWin(WorldVec);
+    CanvasVec.set(CanvasPos.x,CanvasPos.y);
+    return CanvasVec;
+}
+
+function convertCanvasToWorldVector(CanvasVec){
+    let WorldPos = {x:0, y:0};
+    var WorldVec = new Vector2D(0,0);
+
+    WorldPos = wv.convertWinToWorld(CanvasVec.x,CanvasVec.y);
+    WorldVec.set(WorldPos.x,WorldPos.y);
+    return WorldVec;
+}
+
+function CanvasDistance(CanvasVec,WorldVec){
+    var WorldOnCanvasVec = new Vector2D(0,0);
+    var DiffVec = new Vector2D(0,0);
+    var DistOnCanvas = 0;
+
+    WorldOnCanvasVec= WorldVectorToCanvasVector(WorldVec);
+    DiffVec = CanvasVec.subtract(WorldOnCanvasVec);
+    DistOnCanvas = DiffVec.magnitude();
+    return DistOnCanvas;
+}
+
+function calculateWorldDistance(WorldVec1, WorldVec2){
+    let dist = 0;
+
+    var MS = new Vector2D(0.0, 0.0);
+    let wv = new Vector2D(WorldVec1.x, WorldVec1.y);
+
+    MS = wv.subtract(WorldVec2);
+    dist = MS.magnitude();
+
+    return dist;
+}
+
+
+function updateGrabbedSource(){
+    ctx.clearRect(0,0,can.width,can.height); //clear Canvas
+    updateRaysEmitSpreadSource();
+    updateImagePlane();
+    drawFeedLocationDimensions();
+}
+/******************************************************************/
+
+
+
+/********************** Mouse Drag Source functions ****************/
+const sourceGrabSize=200;
+var leftMouseButtonDown = false;
+
+function mousedownCtx(event){
+    sourceGrabbed = true
+    leftMouseButtonDown = true;
+}
+
+function mouseupCtx(event){
+    leftMouseButtonDown = false;
+}
+
+function mousemovedCtx(event){
+    var BoundingRect = can.getBoundingClientRect();
+    var mousePosCanvasVector = new Vector2D(0,0);  //source position in Canvas Coords
+    var mouseDistCanvas = 0;
+
+    let x = event.clientX - BoundingRect.left;
+    let y = event.clientY - BoundingRect.top;
+    mousePosCanvasVector.set(x, y);
+
+    mouseDistCanvas = CanvasDistance(mousePosCanvasVector,S);
+
+    if (leftMouseButtonDown){
+        if(mouseDistCanvas<sourceGrabSize) {
+            S=convertCanvasToWorldVector(mousePosCanvasVector);
+            updateGrabbedSource();
+        }
+    }
+}
+
+/*********************************************************/
+
+
+
+/*******************Touch Emulation Drag Source functions****************/
+let touchedScreen=false;
+function touchdownMouseEmulationCtx(event){
+    touchedScreen = true;
+    touchStartCtx(event);
+}
+
+function touchMovedMouseEmulationCtx(event){
+    if (touchedScreen){touchMovedCtx(event);}
+}
+
+function touchEndMouseEmulationCtx(event){
+    touchedScreen=false;
+    touchEndCtx(event);
+}
+/*************************************************************************/
+
+
+/*******************Touch Drag Source functions***************************/
+
+function touchStartCtx(event){
+    touchMovedCtx(event);  //moved by zero
+}
+function touchEndCtx(event){
+}
+
+
+function touchMovedCtx(event){
+    var BoundingRect = can.getBoundingClientRect();
+    var touchPosCanvasVector = new Vector2D(0.0,0.0);
+    var touchDistCanvas = 0;
+
+    //let x = event.clientX - BoundingRect.left;  // mouse move simulation X
+    //let y = event.clientY - BoundingRect.top;   // y
+    let x = event.targetTouches[0].pageX - BoundingRect.left;  //touch move x
+    let y = event.targetTouches[0].pageY - BoundingRect.top;   //touch move y
+    touchPosCanvasVector.set(x, y);
+    touchDistCanvas= CanvasDistance(touchPosCanvasVector,S);
+    if (touchDistCanvas<sourceGrabSize){
+        S=convertCanvasToWorldVector(touchPosCanvasVector);
+        updateGrabbedSource();
+      //  writeCanvasCoords(x, y); //testing purposes only
+    } else {
+    }
+}
+/*********************************************************************/
+
+
+
+let touchMovedX=0; let touchMovedY =0;
+function writeCanvasCoords(XwinTouch,YwinTouch){
+    let xWin=200; let yWin=200;
+
+    wv.setColor("#00ff00");
+
+    touchMovedX = Math.round(XwinTouch);
+    touchMovedY = Math.round(YwinTouch);
+
+    let xwinStr = XwinTouch.toString();
+    let ywinStr = YwinTouch.toString();
+    let touchCoordStr = "Moved  " + xwinStr + "," + ywinStr + "  ";
+
+    wv.writeTextWin(xWin,yWin+20, touchCoordStr);
+}
+
+
+
+/*******************************************************************************************/
+/*****                     HTML Object management routines                       ***********/
+/*******************************************************************************************/
 
 var dimensionsButton = document.getElementById("dimensions");
 var dimensions = false;
@@ -121,52 +295,7 @@ function getIntensitySpan(){
 }
 
 
-const sourceGrabSize=80;
 
-function mousemovedCtx1(event){
-    var Xwin; var Ywin;
-    var Mworld = {x:0.0, y:0.0};
-    var Mw = new Vector2D(0.0);
-    var MS = new Vector2D(0,0);
-    var Fdist;
-
-    var BoundingRect = parabolaCanvas.getBoundingClientRect();
-
-    Xwin = event.clientX - BoundingRect.left;
-    Ywin = event.clientY - BoundingRect.top;
-
-    Mworld = wv.convertWinToWorld(Xwin,Ywin);
-    Mw.set(Mworld.x,Mworld.y);
-
-    MS = Mw.subtract(S);
-
-    Fdist = MS.magnitude();
-    if (Fdist<sourceGrabSize*parabolaD/(3000)){sourceHover = true}
-    else {sourceHover=false};
-
-
-
-    if (sourceGrabbed){
-        S.set(Mworld.x,Mworld.y);
-        ctx.clearRect(0,0,parabolaCanvas.width, parabolaCanvas.height);
-
-        updateRaysEmitSpreadSource();
-        updateImagePlane();
-        drawFeedLocationDimensions();
-    }
-}
-
-
-function mousedownCtx1(event){
-
-    if (sourceHover){
-        sourceGrabbed = true
-    }
-}
-
-function mouseupCtx1(event){
-    sourceGrabbed = false;
-}
 /****************************************************************
  ****************************************************************
  ****************************************************************/
@@ -215,7 +344,7 @@ let parabolaD=parseInt(parabolaDValue.innerHTML);
 var lambdaSlide = document.getElementById("wavelength");
 var lambdaValue = document.getElementById("wavelengthValue");
 lambdaValue.innerHTML=lambdaSlide.value+"mm";
-let lambda=parseFloat(lambdaValue.innerHTML)*1.22; //1.22
+let lambda=parseFloat(lambdaValue.innerHTML)*1.22; //1.22 is the Fraunhof correction factor for circular apertures
 
 var parabolaFDSlide = document.getElementById("fD");
 var parabolaFDValue = document.getElementById("fDvalue");
@@ -227,8 +356,9 @@ let parabolaA= 1/(4*parabolaF);
 let focus=1/(4*parabolaA);
 
 let XworldMin=-(parabolaD/2)*1.2; let XworldMax=(parabolaD/2)*1.2;
-// let YworldMin=-50; let YworldMax=XworldMax*2+YworldMin;
-let parabolaOffsetY=-parabolaD/60;
+
+
+let parabolaOffsetY=-parabolaD/5;
 let YworldMin=parabolaOffsetY; YworldMax=XworldMax*2+YworldMin;
 
 
@@ -624,8 +754,8 @@ window.innerHeight=2*window.innerWidth;
 ParabolaWinWidth=window.innerWidth*0.8;
 ParabolaWinHeight=ParabolaWinWidth;
 
-parabolaCanvas.width=ParabolaWinWidth;
-parabolaCanvas.height=ParabolaWinHeight;
+can.width=ParabolaWinWidth;
+can.height=ParabolaWinHeight;
 
 var wv = new WorldView(ctx, XworldMin, XworldMax,YworldMin, YworldMax, 0, ParabolaWinWidth, 0, ParabolaWinHeight);
 
@@ -634,8 +764,8 @@ function init(){
     ParabolaWinWidth=window.innerWidth*0.8;
     ParabolaWinHeight=ParabolaWinWidth;
 
-    parabolaCanvas.width=ParabolaWinWidth;
-    parabolaCanvas.height=ParabolaWinHeight;
+    can.width=ParabolaWinWidth;
+    can.height=ParabolaWinHeight;
 
     wv = new WorldView(ctx, XworldMin, XworldMax,YworldMin, YworldMax, 0, ParabolaWinWidth, 0, ParabolaWinHeight);
 
