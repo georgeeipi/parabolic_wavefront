@@ -13,6 +13,7 @@ The Wavefront software, HTML, CSS, JavaScript is free.
 */
 
 const degToRad = Math.PI/180.0;
+const radToDeg = 1/degToRad;
 
 
 /****************************************************************
@@ -27,6 +28,18 @@ window.onresize=function(){
     init();
 }
 
+var scrollModeY; //store the scroll mode of the display while using mouse or touch functions.
+
+function disableScroll(event) {
+    scrollModeY=document.body.style.overflowY;//store the scroll mode of the display while using mouse or touch functions.
+    document.body.style.overflowY="hidden"
+    event.preventDefault();
+}
+
+function enableScroll(event) {
+    document.body.style.overflowY=scrollModeY;
+    event.returnValue=true;
+}
 
 const can=document.getElementById("parabolaCanvas");
 const ctx = can.getContext("2d");
@@ -45,11 +58,11 @@ ctx.canvas.addEventListener('mousemove', touchMovedMouseEmulationCtx);
 ctx.canvas.addEventListener('mousedown', touchdownMouseEmulationCtx);
 ctx.canvas.addEventListener("mouseup", touchEndMouseEmulationCtx);
 */
-
+/*
 can.addEventListener('touchmove', touchMovedCtx);
 can.addEventListener('touchstart', touchStartCtx);
 can.addEventListener('touchend', touchEndCtx);
-
+*/
 
 /*************************Common Drag Source functions **********/
 function WorldVectorToCanvasVector(WorldVec){
@@ -94,10 +107,26 @@ function calculateWorldDistance(WorldVec1, WorldVec2){
 }
 
 
+function drawDishStructure(){
+    // draw dish structure
+    wv.setColor("#FF0000");
+    wv.drawCircle(F, 0.019*parabolaD);   //draw focus point
+
+    drawParabolaV(wv, parabolaA, parabolaD);
+}
+
+function drawSource(){
+    //draw ray and source structure
+    wv.setColor("#0000FF");
+    wv.drawCircle(S,0.02*parabolaD);  //draw source point
+}
+
 function updateGrabbedSource(){
     ctx.clearRect(0,0,can.width,can.height); //clear Canvas
     updateRaysEmitSpreadSource();
     updateImagePlane();
+    drawSource();
+    drawDishStructure();
     drawFeedLocationDimensions();
 }
 /******************************************************************/
@@ -106,34 +135,42 @@ function updateGrabbedSource(){
 
 /********************** Mouse Drag Source functions ****************/
 const sourceGrabSize=200;
-var leftMouseButtonDown = false;
+var mouseGrabbedSource = false;
+
+var BoundingRect =can.getBoundingClientRect();
+function getMousePosCanvasVector(event){
+    var mousePosCanvasVector = new Vector2D(0.0,0.0);
+    BoundingRect = can.getBoundingClientRect(); //updated here in case window size changed
+
+    let x = event.clientX - BoundingRect.left;  // mouse move simulation X
+    let y = event.clientY - BoundingRect.top;   // y
+
+    mousePosCanvasVector.set(x, y);
+    return mousePosCanvasVector;
+}
+
 
 function mousedownCtx(event){
-    sourceGrabbed = true
-    leftMouseButtonDown = true;
+    var mousePosCanvasVector = new Vector2D(0,0);
+    var mouseDistCanvas = 0;
+    mousePosCanvasVector = getMousePosCanvasVector(event);
+    mouseDistCanvas = CanvasDistance(mousePosCanvasVector,S);
+    if (mouseDistCanvas<sourceGrabSize) {mouseGrabbedSource=true;}
+    else (mouseGrabbedSource=false);
 }
 
 function mouseupCtx(event){
-    leftMouseButtonDown = false;
+     mouseGrabbedSource=false;
 }
 
 function mousemovedCtx(event){
-    var BoundingRect = can.getBoundingClientRect();
     var mousePosCanvasVector = new Vector2D(0,0);  //source position in Canvas Coords
-    var mouseDistCanvas = 0;
 
-    let x = event.clientX - BoundingRect.left;
-    let y = event.clientY - BoundingRect.top;
-    mousePosCanvasVector.set(x, y);
-
-    mouseDistCanvas = CanvasDistance(mousePosCanvasVector,S);
-
-    if (leftMouseButtonDown){
-        if(mouseDistCanvas<sourceGrabSize) {
-            S=convertCanvasToWorldVector(mousePosCanvasVector);
-            updateGrabbedSource();
-        }
-    }
+   if (mouseGrabbedSource){
+       mousePosCanvasVector = getMousePosCanvasVector(event);
+       S=convertCanvasToWorldVector(mousePosCanvasVector);
+       updateGrabbedSource();
+   }
 }
 
 /*********************************************************/
@@ -160,30 +197,43 @@ function touchEndMouseEmulationCtx(event){
 
 /*******************Touch Drag Source functions***************************/
 
+/*  for BoundingRect definition see mouse drag variables above */
+function getTouchPosCanvasVector(event){
+    var touchPosCanvasVector = new Vector2D(0.0,0.0);
+    BoundingRect = can.getBoundingClientRect();
+
+    let x = event.clientX - BoundingRect.left;  // mouse move simulation X
+    let y = event.clientY - BoundingRect.top;   // y
+    //  let x = event.targetTouches[0].pageX - BoundingRect.left;  //touch move x
+    //  let y = event.targetTouches[0].pageY - BoundingRect.top;   //touch move y
+    touchPosCanvasVector.set(x, y);
+    return touchPosCanvasVector;
+}
+
+touchGrabbedSource=false;
+
 function touchStartCtx(event){
-    touchMovedCtx(event);  //moved by zero
+    var touchPosCanvasVector = new Vector2D(0,0);
+    var touchDistCanvas = 0;
+
+    disableScroll(event);
+    touchPosCanvasVector = getTouchPosCanvasVector(event);
+    touchDistCanvas = CanvasDistance(touchPosCanvasVector,S);
+    if (touchDistCanvas<sourceGrabSize) {touchGrabbedSource=true;};
 }
 function touchEndCtx(event){
+    enableScroll(event);
+    touchGrabbedSource=false;
 }
 
 
 function touchMovedCtx(event){
-    var BoundingRect = can.getBoundingClientRect();
-    var touchPosCanvasVector = new Vector2D(0.0,0.0);
-    var touchDistCanvas = 0;
-
-    //let x = event.clientX - BoundingRect.left;  // mouse move simulation X
-    //let y = event.clientY - BoundingRect.top;   // y
-    let x = event.targetTouches[0].pageX - BoundingRect.left;  //touch move x
-    let y = event.targetTouches[0].pageY - BoundingRect.top;   //touch move y
-    touchPosCanvasVector.set(x, y);
-    touchDistCanvas= CanvasDistance(touchPosCanvasVector,S);
-    if (touchDistCanvas<sourceGrabSize){
-        S=convertCanvasToWorldVector(touchPosCanvasVector);
-        updateGrabbedSource();
-      //  writeCanvasCoords(x, y); //testing purposes only
-    } else {
-    }
+  if (touchGrabbedSource){
+   let touchPosCanvasVector = getTouchPosCanvasVector(event);
+   S=convertCanvasToWorldVector(touchPosCanvasVector);
+   updateGrabbedSource();
+   writeCanvasCoords(S.x, S.y);
+ }
 }
 /*********************************************************************/
 
@@ -215,16 +265,34 @@ var dimensionsButton = document.getElementById("dimensions");
 var dimensions = false;
 function drawFeedLocationDimensions(){
   var Diff = new Vector2D(0.0,0.0);
+
+  //  calculateAngleAtFeed(a,xP, xS, yS)
+  //  minIlluminationPointFloat
+  let angleAtFeedMin = calculateAngleAtFeed(parabolaA, minIlluminationPointFloat,S.x, S.y);
+  let angleAtFeedMax = calculateAngleAtFeed(parabolaA, maxIlluminationPointFloat, S.x, S.y);
+  let angleAtFeed = angleAtFeedMax-angleAtFeedMin;
+
   Diff=S.subtract(F);
   if (dimensions) {
       wv.setColor("#00ff00");
       let xDim = Math.round(Diff.x);
       let yDim = Math.round(Diff.y);
+
+      let angleAtFeedMin = calculateAngleAtFeed(parabolaA, minIlluminationPointFloat*parabolaD-parabolaD/2,S.x, S.y);
+      let angleAtFeedMax = calculateAngleAtFeed(parabolaA, maxIlluminationPointFloat*parabolaD-parabolaD/2, S.x, S.y);
+      let angleAtFeed = angleAtFeedMax-angleAtFeedMin;
+      angleAtFeed=Math.round(angleAtFeed*radToDeg);
+      let angleAtFeedStr = angleAtFeed.toString();
+
       let xDimStr = xDim.toString();
       let yDimStr = yDim.toString();
-      let DimStr = "   " + xDimStr + "mm," + yDimStr + "mm";
+      let DimStr = "   " + xDimStr + "mm," + yDimStr + "mm"+" "+angleAtFeedStr+'⁰';
       wv.drawArrow(F, S);
       wv.writeTextWhiteBackWorld(S, DimStr);
+
+
+      wv.writeTextWhiteBack
+
       wv.ctx.stroke();
   }  else {
 
@@ -264,16 +332,18 @@ const numberOfSources = 1; //for symmetry number of feed sources must be odd
 var numWaveletsSlider = document.getElementById("numWaveletsSlider");
 var numWaveletsValue = document.getElementById("numWaveletsValue");
 numWaveletsValue.innerHTML=numWaveletsSlider.value;
+
 let numWavelets=parseInt(numWaveletsValue.innerHTML);
-let nIntensities = numWavelets*1;
-let intensityPlaneScale = 1.0/(numWavelets/100)*(numberOfSources);
-var intensity = [nIntensities];
+
+let intensityPlaneVertScaleFactor=10.0;  //scale for the display size on the plot to align with horizontal screen line
+let intensityPlaneScale = intensityPlaneVertScaleFactor/(numWavelets);
+
+
+
 function getNumWavelets(){
     numWaveletsValue.innerHTML=numWaveletsSlider.value;
     numWavelets=parseInt(numWaveletsValue.innerHTML);
-    nIntensities = numWavelets*1;
-    intensityPlaneScale = 1.0/(numWavelets/100)*(numberOfSources);
-    intensity = [nIntensities];
+    intensityPlaneScale = intensityPlaneVertScaleFactor/(numWavelets);
     init();
     drawFeedLocationDimensions();
 }
@@ -295,9 +365,73 @@ function getIntensitySpan(){
 }
 
 
+var numIntensityPointsSlider = document.getElementById("numIntensityPointsSlider");
+var numIntensityPointsValue = document.getElementById("numIntensityPointsValue");
+numIntensityPointsValue.innerHTML=numIntensityPointsSlider.value;
+let numIntensityPoints=parseInt(numIntensityPointsValue.innerHTML);
+function getNumIntensityPoints(){
+    numIntensityPointsValue.innerHTML=numIntensityPointsSlider.value;
+    numIntensityPoints=parseInt(numIntensityPointsValue.innerHTML);
+    init();
+    drawFeedLocationDimensions();
+}
+
+
+var subSamplingNumSlider = document.getElementById("subSamplingNumSlider");
+var subSamplingNumValue = document.getElementById("subSamplingNumValue");
+subSamplingNumValue.innerHTML=subSamplingNumSlider.value;
+let subSamplingNum=parseInt(subSamplingNumValue.innerHTML);
+function getSubSamplingNum(){
+    subSamplingNumValue.innerHTML=subSamplingNumSlider.value;
+    subSamplingNum=parseInt(subSamplingNumValue.innerHTML);
+    init();
+    drawFeedLocationDimensions();
+}
+
+
+const illuminationPointStepSize = 0.05;
+
+var minIlluminationPointSlider = document.getElementById("minIlluminationPointSlider");
+var minIlluminationPointValue = document.getElementById("minIlluminationPointValue");
+minIlluminationPointValue.innerHTML=minIlluminationPointSlider.value;
+let minIlluminationPointFloat=parseFloat(minIlluminationPointValue.innerHTML);
+let minIlluminationPoint = minIlluminationPointFloat;
+function getMinIlluminationPoint(){
+    minIlluminationPointValue.innerHTML=minIlluminationPointSlider.value;
+    minIlluminationPointFloat=parseFloat(minIlluminationPointValue.innerHTML);
+    minIlluminationPoint = minIlluminationPointFloat;
+    minIlluminationPoint = minIlluminationPoint.toFixed(2);
+    if (minIlluminationPoint>=maxIlluminationPoint){
+        minIlluminationPoint = maxIlluminationPoint-illuminationPointStepSize;
+        minIlluminationPoint = minIlluminationPoint.toFixed(2);
+        minIlluminationPointValue.innerHTML = minIlluminationPoint.toString(10);
+        minIlluminationPointSlider.value = minIlluminationPointValue.innerHTML;
+    }
+    init();
+    drawFeedLocationDimensions();
+}
+
+var maxIlluminationPointSlider = document.getElementById("maxIlluminationPointSlider");
+var maxIlluminationPointValue = document.getElementById("maxIlluminationPointValue");
+maxIlluminationPointValue.innerHTML=maxIlluminationPointSlider.value;
+let maxIlluminationPointFloat=parseFloat(maxIlluminationPointValue.innerHTML);
+let maxIlluminationPoint = maxIlluminationPointFloat;
+function getMaxIlluminationPoint(){
+    maxIlluminationPointValue.innerHTML=maxIlluminationPointSlider.value;
+    maxIlluminationPoint=parseFloat(maxIlluminationPointValue.innerHTML);
+    maxIlluminationPoint = maxIlluminationPoint.toFixed(2);
+    if (maxIlluminationPoint<=minIlluminationPoint){
+        maxIlluminationPointFloat = minIlluminationPointFloat+illuminationPointStepSize;
+        maxIlluminationPoint = maxIlluminationPointFloat.toFixed(2);
+        maxIlluminationPointValue.innerHTML = maxIlluminationPoint.toString(10);
+        maxIlluminationPointSlider.value = maxIlluminationPointValue.innerHTML;
+    }
+    init();
+    drawFeedLocationDimensions();
+}
 
 /****************************************************************
- ****************************************************************
+ ***********Function Related to Dish Geometry********************
  ****************************************************************/
 
 function calculateParabola(a, x){
@@ -306,6 +440,13 @@ function calculateParabola(a, x){
 
 function calculateParabolaDx(a,x){
     return 2*a*x;
+}
+
+function calculateAngleAtFeed(a,xP, xS, yS){
+    let yP=calculateParabola(a, xP);
+    let xDiff=xP-xS;
+    let yDiff = yS-yP;  //World Coords, yP os up from parabola surface
+    return Math.atan2(xDiff,yDiff);
 }
 
 
@@ -372,12 +513,13 @@ let rayPathLength = parabolaF + parabolaD*parabolaD/(16 * parabolaF) +rayLength;
 function getParabolaDiameter(){
     parabolaDValue.innerHTML = parabolaDSlide.value+"mm";
     parabolaD=parseInt(parabolaDSlide.value);
+
     parabolaF= parabolaFD*parabolaD;
     parabolaA= 1/(4*parabolaF);
     focus=1/(4*parabolaA);
 
     XworldMin=-(parabolaD/2)*1.2; XworldMax=(parabolaD/2)*1.2;
-    parabolaOffsetY=-parabolaD/60;
+    parabolaOffsetY=-parabolaD/5;
     YworldMin=parabolaOffsetY; YworldMax=XworldMax*2+YworldMin;
 
     F = new Vector2D(0, focus);
@@ -434,14 +576,6 @@ function getFD(){
 /********************************************************************************
  ******        Plotting Parameters                                   ************
  *******************************************************************************/
-//const lambda = 230;
-const intSource = 1.0;
-
-/*
-const minTheta = -20.0*degToRad;
-const maxTheta =  20.0*degToRad;
- */
-
 
 const imagePlaneDistance = 10000000; //10kms in mm
 const imagePlaneHeight = 120;
@@ -451,13 +585,7 @@ const imagePlaneHeight = 120;
 **************   Number of sources for image-plane resolution    **********
 ***************************************************************************/
 
-//const nEmits = 900;   // number of wavelets  default 300
-//const nIntensities = nEmits*4; //number of image plane points default 900
-
-
-//const intensityPlaneScale = 1.0/(nEmits/100)*(numberOfSources);
-
-function convertThetaToWin(theta, wv){
+function convertThetaToWin(theta, wv){ //Theta referring to the range plotted  diffraction intensity graph
     let thetaRange = maxTheta-minTheta;
     let winXRange = wv.x_win_max-wv.x_win_min;
     let xWinCentre = (wv.x_win_min + wv.x_win_max)/2;
@@ -473,7 +601,7 @@ function convertThetaToWin(theta, wv){
 }
 
 
-function drawImagePlane(wv){
+function drawImagePlane(wv){ //Image plane is the plane on which the diffraction intensity is plotted
   var nInt;
     var degMinus20Win; var degMinus15Win;  var degMinus10Win;  var degMinus5Win;
     var deg0Win;
@@ -516,13 +644,13 @@ function drawImagePlane(wv){
     wv.writeTextWin(deg0Win, wv.y_win_min+imagePlaneHeight + 15,"0");
 
     deg5Win = convertThetaToWin(5.0*degToRad,wv);
-    wv.writeTextWin(deg5Win, wv.y_win_min+imagePlaneHeight + 15,"5");
+    wv.writeTextWin(deg5Win-20, wv.y_win_min+imagePlaneHeight + 15,"5");
 
     deg10Win = convertThetaToWin(10.0*degToRad,wv);
-    wv.writeTextWin(deg10Win, wv.y_win_min+imagePlaneHeight + 15,"10");
+    wv.writeTextWin(deg10Win-20, wv.y_win_min+imagePlaneHeight + 15,"10");
 
     deg15Win = convertThetaToWin(15.0*degToRad,wv);
-    wv.writeTextWin(deg15Win, wv.y_win_min+imagePlaneHeight + 15,"15");
+    wv.writeTextWin(deg15Win-20, wv.y_win_min+imagePlaneHeight + 15,"15");
 
     deg20Win = convertThetaToWin(20.0*degToRad,wv);
     wv.writeTextWin(deg20Win-20, wv.y_win_min+imagePlaneHeight + 15,"20");  //subtract out x because text is left justified and is approax 20px.
@@ -534,19 +662,12 @@ var F = new Vector2D(0, focus);
 
 var S = new Vector2D(0,parabolaF+0); //source vector; Starts at focus
 
-//var intensity = [nIntensities];
+
 
 
 function initDish(){
     wv.setColor("#FF0000");
-//    wv.drawCircle(S,40);
     drawParabolaV(wv, parabolaA, parabolaD);
-/*
-    for (let n = 0; n<= nEmits; n++){
-        phase0Emits[n] = new Vector2D(0.0,0.0);
-    }
-
- */
 }
 
 function calcParabolaIncident(xWorld){
@@ -595,7 +716,7 @@ function drawRays(P, N, D, R, Ray0Emit, Rs, Source){
  }
 
 
-function updateRaysEmitv2(S){
+function updateRaysEmit(S){
     const rayIncrement = 30;
 
     var rayNum = 0;
@@ -609,9 +730,17 @@ function updateRaysEmitv2(S){
     var xWorld;
     var phase0Emits = [numWavelets]; //location of 0 phase
 
-    for (rayNum = 0; rayNum <= numWavelets; rayNum=rayNum+1) {
-        xWorld = rayNum*parabolaD/numWavelets-parabolaD/2;
+/*
+    const xMin = -1.0*parabolaD/2;
+    const xMax = 1.0*parabolaD/2;
 
+ */
+    let xMin = minIlluminationPoint*parabolaD-parabolaD/2;
+    let xMax = maxIlluminationPoint*parabolaD-parabolaD/2;
+    let dx = (xMax-xMin)/numWavelets;
+
+    for (rayNum = 0; rayNum <= numWavelets; rayNum=rayNum+1) {
+        xWorld = rayNum*dx+xMin;
 
         Incident = calcParabolaIncident(xWorld);
         IncidentDirection = Incident.subtract(S);
@@ -622,113 +751,90 @@ function updateRaysEmitv2(S){
         Ray0Emit = calcPhase0Point(Incident, IncidentDirection, ReflectionUnit);
         phase0Emits[rayNum] =Ray0Emit; //phase0 points used in intensity subsampling;
 
+        // Draw some of the computer rays
         let notDraw = rayNum%rayIncrement;
         if (!notDraw){
             ReflectedRay = calcReflectedRays(IncidentDirection,ReflectionUnit);
             drawRays(Incident, Normal, IncidentDirection, ReflectedDirecton, Ray0Emit, ReflectedRay, S);
             wv.drawCircle(Ray0Emit,0.0075*parabolaD);  //draw phasezero points
-        }else{
-            let dummy=0;
-            dummy = dummy+1;
-        };
+        }
     }
-
-
-    //draw ray and source structure
-    wv.setColor("#0000FF");
-    wv.drawCircle(S,0.02*parabolaD);  //draw source point
-
-    // draw dish structure
-    wv.setColor("#FF0000");
-    wv.drawCircle(F, 0.019*parabolaD);   //draw focus point
-    drawParabolaV(wv, parabolaA, parabolaD);
-
     return phase0Emits;
 }
 
 
-var prevInts = 0;
-var maxEnergyInts = 0.0;
 
-
-function updateImagePlane(){
-    var sum;
+function updateImagePlane(){ //The diffraction instensity graph
     var theta;
     var ImagePlaneRay = new Vector2D(0.0,0.0);
     var RI = new Vector2D(0.0,0.0); //reflection to image plane vector;
-    var dist;
-    var intcurr;
     var energycurr;
-    var dIntLine;
     var currPhase0Source = new Vector2D(0.0,0.0);
     var currPhase0Emits;
 
+    var energy = [numIntensityPoints]; //for the square of intensity (power)
 
-    let e_scale = 1/numWavelets*intensityPlaneScale/Math.pow(numberOfSources,2);
+
 
     drawImagePlane(wv);
 
-    dTheta = (maxTheta - minTheta)/nIntensities;
+    dTheta = (maxTheta - minTheta)/numIntensityPoints;
 
     let x_win_Range = parabolaD;
-    dIntLine = x_win_Range/nIntensities;
 
-    const ints = 10;
-
-    for (let i=0; i<=nIntensities; i++) { //for each point on the intensity plot
+    for (let i=0; i<=numIntensityPoints; i++) { //for each point on the intensity plot
         theta = (minTheta + i*dTheta);
         ImagePlaneRay.set(imagePlaneDistance * Math.tan(theta), imagePlaneDistance);
 
-        sum = 0.0;
+        let sum = 0.0;
 
-        for (let phase0SourceNum = 0; phase0SourceNum<= numberOfSources-1; phase0SourceNum++) { //for each phase0 emmision from a particular source
+        for (let phase0SourceNum = 0; phase0SourceNum<= numberOfSources-1; phase0SourceNum++) { //for each phase0 wavelet from a particular source
             currPhase0Emits = phase0EmitsArray[phase0SourceNum];
 
-            for (let e = 0; e <= numWavelets-1; e=e+1) {//for each reflection point from that source
-                currPhase0Source = currPhase0Emits[e];
+            for (let Wi = 0; Wi <= numWavelets-1; Wi=Wi+1) {//for the ith wavelet, Wi, for the current source, currPhase0Emits
+                currPhase0Source = currPhase0Emits[Wi];
                 RI = ImagePlaneRay.subtract(currPhase0Source); //vector from phase 0 to current ImagePlane point;
-                dist = RI.magnitude();
+                let dist = RI.magnitude();
 
-                let nLambda = (dist % lambda);
+                let nLambda = (dist % lambda); //get the phase in terms of a single wavelength
                 let phase = 2.0 * Math.PI / lambda * nLambda; //lambda is wavelength
-                intcurr = intSource * Math.sin(phase);
+                let intcurr = Math.sin(phase);
                 sum = intcurr + sum;
             }
         }
 
+        energy[i]=sum*sum;
 
-        intensity[i] = sum;
-        currIntPoint = -parabolaD/2+i*dIntLine;
 
         let thetaWin = convertThetaToWin(theta,wv);
 
-        let thetaWinInts = Math.trunc(thetaWin/ints);
+        let e_scale = intensityPlaneScale*intensityPlaneScale/(numberOfSources); //bug when adding up multiple sources
 
-        energycurr = e_scale*sum*sum;
+        energycurr = e_scale*energy[i];
 
-        if (prevInts==thetaWinInts){ // If statement selects the maximum value for the current source point.
-            if(energycurr>maxEnergyInts){maxEnergyInts = energycurr};
-        } else {
-            //wv.drawWinCircle(thetaWinInts+iOffs, wv.y_win_min+imagePlaneHeight-maxEnergyInts,1);
-            //           wv.drawWinCircle(thetaWinInts, wv.y_win_min+imagePlaneHeight-maxEnergyInts,1);
-            wv.drawWinCircle(thetaWin,    wv.y_win_min+imagePlaneHeight-maxEnergyInts,numberOfSources);  //draw intensity power curve
-            prevInts=thetaWinInts;
-            maxEnergyInts = 0.0;
-        }
-        /*****************************************************************************/
-        //   wv.drawWinCircle(thetaWin,    wv.y_win_min+imagePlaneHeight-energycurr,numberOfSources);  //draw filled power curve
-        /*****************************************************************************/
-        if (fill) {
-            wv.drawWinCircle(thetaWin, wv.y_win_min + imagePlaneHeight - energycurr, numberOfSources);  //draw filled power curve
+        if (fill) { //draw all points
+            wv.drawWinCircle(thetaWin, wv.y_win_min + imagePlaneHeight - energycurr, 1);  //draw filled power curve
+        } else { // If statement selects the maximum value for the current source point.
+            let maxEnergy=0.0;
+            let ints = Math.round(subSamplingNum/2);
+            for (j=i-ints; j<i+ints; j=j+1){
+                if (j>=0){
+                    if (energy[j]>maxEnergy){
+                        maxEnergy=energy[j];
+                    }
+                }
+            }
+            wv.drawWinCircle(thetaWin, wv.y_win_min + imagePlaneHeight - e_scale*maxEnergy, 1);  //draw filled power curve
         }
     }
 }
+
 
 
 var phase0EmitsArray = [];
 
 function updateRaysEmitSpreadSource(){
-    const sourceSpread = 250.0;  //Septum feed is 145mm approx
+    const sourceSpread = 145.0;  //Septum feed is 145mm approx
     const minSourceX = -sourceSpread/2;
     const dSourceX = sourceSpread/(numberOfSources-1);
 
@@ -736,19 +842,17 @@ function updateRaysEmitSpreadSource(){
     if (numberOfSources==1){// sourceSpread is underfined so setup as single source
         sourceNum = 0;
         SourceCurr.set(S.x,S.y);
-        phase0EmitsArray[sourceNum] = updateRaysEmitv2(SourceCurr);
+        phase0EmitsArray[sourceNum] = updateRaysEmit(SourceCurr);
     }else {
         for (let sourceNum = 0; sourceNum <= numberOfSources - 1; sourceNum++) {
             let xSource = sourceNum * dSourceX + minSourceX;
             SourceCurr.set(xSource + S.x, S.y)
 
-            phase0EmitsArray[sourceNum] = updateRaysEmitv2(SourceCurr);
+            phase0EmitsArray[sourceNum] = updateRaysEmit(SourceCurr);
         }
     }
 }
 
-// window.open("","","width=400, height=800");
-//window.innerWidth=700;
 window.innerHeight=2*window.innerWidth;
 
 ParabolaWinWidth=window.innerWidth*0.8;
@@ -772,21 +876,18 @@ function init(){
 
     initDish();
     drawImagePlane(wv);
-
     updateRaysEmitSpreadSource();
+    //draw ray and source structure
+
+    drawSource();
+    drawDishStructure();
+
     updateImagePlane();
 }
 
 /*****************************************************************************************/
 /*
-To Do
-f/D slider
-frequency/wavelength vs Diameter parameters for intensity/power graph calculations
-fraunhofer correction
-number of points option
-filled display option
 log power graph calculation for graph display
 feed displacement display
-
  */
 /*****************************************************************************************/

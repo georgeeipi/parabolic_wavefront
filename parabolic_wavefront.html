@@ -42,7 +42,7 @@
 
   <div class="slidercontainer">
       <p>Diameter:
-            <input type="range" id="diameter" min = "1000" max="10000" step ="100"  value="3000" oninput="getParabolaDiameter()"></input>
+            <input type="range" id="diameter" min = "500" max="10000" step ="100"  value="3000" oninput="getParabolaDiameter()"></input>
             <output id="diameterValue"></output>
       </p>
       <p>Wavelength:
@@ -54,12 +54,28 @@
             <output id="fDvalue"></output>
       </p>
       <p>Num Wavelets:
-          <input type="range" id="numWaveletsSlider" min="300" max="6000" step="300" value="900" oninput="getNumWavelets()"></input>
+          <input type="range" id="numWaveletsSlider" min="300" max="3000" step="300" value="300" oninput="getNumWavelets()"></input>
           <output id="numWaveletsValue"></output>
       </p>
       <p>Intensity Span:
-          <input type="range" id="spanSlider" min="5" max="20" step="5" value="20" oninput="getIntensitySpan()"></input>
+          <input type="range" id="spanSlider" min="5" max="25" step="5" value="25" oninput="getIntensitySpan()"></input>
           <output id="spanValue"></output>
+      </p>
+      <p>Num Intensity points:
+          <input type="range" id="numIntensityPointsSlider" min="500" max="10000" step="100" value="3000" oninput="getNumIntensityPoints()"></input>
+          <output id="numIntensityPointsValue"></output>
+      </p>
+      <p>Intensity Subsampling Num:
+          <input type="range" id="subSamplingNumSlider" min="1" max="100" step="1" value="30" oninput="getSubSamplingNum()"></input>
+          <output id="subSamplingNumValue"></output>
+      </p>
+      <p>Min Illumination Point:
+          <input type="range" id="minIlluminationPointSlider" min="0" max="1" step="0.05" value="0" oninput="getMinIlluminationPoint()"></input>
+          <output id="minIlluminationPointValue"></output>
+      </p>
+      <p>Max Illumination Point:
+          <input type="range" id="maxIlluminationPointSlider" min="0" max="1" step="0.05" value="1" oninput="getMaxIlluminationPoint()"></input>
+          <output id="maxIlluminationPointValue"></output>
       </p>
       <p>
         <button type="button" id="dimensions" onclick="toggleDimensions()">Dimensions</button>
