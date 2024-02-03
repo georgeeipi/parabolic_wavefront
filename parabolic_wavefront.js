@@ -58,11 +58,11 @@ ctx.canvas.addEventListener('mousemove', touchMovedMouseEmulationCtx);
 ctx.canvas.addEventListener('mousedown', touchdownMouseEmulationCtx);
 ctx.canvas.addEventListener("mouseup", touchEndMouseEmulationCtx);
 */
-/*
+
 can.addEventListener('touchmove', touchMovedCtx);
 can.addEventListener('touchstart', touchStartCtx);
 can.addEventListener('touchend', touchEndCtx);
-*/
+
 
 /*************************Common Drag Source functions **********/
 function WorldVectorToCanvasVector(WorldVec){
@@ -108,7 +108,6 @@ function calculateWorldDistance(WorldVec1, WorldVec2){
 
 
 function drawDishStructure(){
-    // draw dish structure
     wv.setColor("#FF0000");
     wv.drawCircle(F, 0.019*parabolaD);   //draw focus point
 
@@ -123,10 +122,14 @@ function drawSource(){
 
 function updateGrabbedSource(){
     ctx.clearRect(0,0,can.width,can.height); //clear Canvas
-    updateRaysEmitSpreadSource();
-    updateImagePlane();
     drawSource();
     drawDishStructure();
+    drawFeedLocationDimensions();
+
+    waveletsEmmision=updateWaveletsEmission(S);
+    energy=calculateEnergyAtImagePlane(waveletsEmmision);
+    drawEnergy(energy);
+
     drawFeedLocationDimensions();
 }
 /******************************************************************/
@@ -202,10 +205,10 @@ function getTouchPosCanvasVector(event){
     var touchPosCanvasVector = new Vector2D(0.0,0.0);
     BoundingRect = can.getBoundingClientRect();
 
-    let x = event.clientX - BoundingRect.left;  // mouse move simulation X
-    let y = event.clientY - BoundingRect.top;   // y
-    //  let x = event.targetTouches[0].pageX - BoundingRect.left;  //touch move x
-    //  let y = event.targetTouches[0].pageY - BoundingRect.top;   //touch move y
+    // let x = event.clientX - BoundingRect.left;  // mouse move simulation X
+    // let y = event.clientY - BoundingRect.top;   // y
+    let x = event.targetTouches[0].pageX - BoundingRect.left;  //touch move x
+    let y = event.targetTouches[0].pageY - BoundingRect.top;   //touch move y
     touchPosCanvasVector.set(x, y);
     return touchPosCanvasVector;
 }
@@ -232,7 +235,7 @@ function touchMovedCtx(event){
    let touchPosCanvasVector = getTouchPosCanvasVector(event);
    S=convertCanvasToWorldVector(touchPosCanvasVector);
    updateGrabbedSource();
-   writeCanvasCoords(S.x, S.y);
+ //  writeCanvasCoords(S.x, S.y);
  }
 }
 /*********************************************************************/
@@ -265,12 +268,8 @@ var dimensionsButton = document.getElementById("dimensions");
 var dimensions = false;
 function drawFeedLocationDimensions(){
   var Diff = new Vector2D(0.0,0.0);
-
-  //  calculateAngleAtFeed(a,xP, xS, yS)
-  //  minIlluminationPointFloat
   let angleAtFeedMin = calculateAngleAtFeed(parabolaA, minIlluminationPointFloat,S.x, S.y);
   let angleAtFeedMax = calculateAngleAtFeed(parabolaA, maxIlluminationPointFloat, S.x, S.y);
-  let angleAtFeed = angleAtFeedMax-angleAtFeedMin;
 
   Diff=S.subtract(F);
   if (dimensions) {
@@ -287,15 +286,10 @@ function drawFeedLocationDimensions(){
       let xDimStr = xDim.toString();
       let yDimStr = yDim.toString();
       let DimStr = "   " + xDimStr + "mm," + yDimStr + "mm"+" "+angleAtFeedStr+'⁰';
+
       wv.drawArrow(F, S);
       wv.writeTextWhiteBackWorld(S, DimStr);
-
-
-      wv.writeTextWhiteBack
-
       wv.ctx.stroke();
-  }  else {
-
   }
 }
 
@@ -328,7 +322,7 @@ function toggleFill(){
     drawFeedLocationDimensions();
 }
 
-const numberOfSources = 1; //for symmetry number of feed sources must be odd
+const numberOfSources = 1; //place holder for more than 1 feed sources. For symmetry number of feed sources must be odd
 var numWaveletsSlider = document.getElementById("numWaveletsSlider");
 var numWaveletsValue = document.getElementById("numWaveletsValue");
 numWaveletsValue.innerHTML=numWaveletsSlider.value;
@@ -337,8 +331,6 @@ let numWavelets=parseInt(numWaveletsValue.innerHTML);
 
 let intensityPlaneVertScaleFactor=10.0;  //scale for the display size on the plot to align with horizontal screen line
 let intensityPlaneScale = intensityPlaneVertScaleFactor/(numWavelets);
-
-
 
 function getNumWavelets(){
     numWaveletsValue.innerHTML=numWaveletsSlider.value;
@@ -502,22 +494,13 @@ let XworldMin=-(parabolaD/2)*1.2; let XworldMax=(parabolaD/2)*1.2;
 let parabolaOffsetY=-parabolaD/5;
 let YworldMin=parabolaOffsetY; YworldMax=XworldMax*2+YworldMin;
 
-
-//const rayLength = 2750; //ray length in the world view in mm
 let rayLength = parabolaD/2;
 
 let rayPathLengthDish = parabolaF + parabolaD*parabolaD/(16 * parabolaF);
 let rayPathLength = parabolaF + parabolaD*parabolaD/(16 * parabolaF) +rayLength;
 
 
-function getParabolaDiameter(){
-    parabolaDValue.innerHTML = parabolaDSlide.value+"mm";
-    parabolaD=parseInt(parabolaDSlide.value);
-
-    parabolaF= parabolaFD*parabolaD;
-    parabolaA= 1/(4*parabolaF);
-    focus=1/(4*parabolaA);
-
+function updateCommonParabolaGeometry(){
     XworldMin=-(parabolaD/2)*1.2; XworldMax=(parabolaD/2)*1.2;
     parabolaOffsetY=-parabolaD/5;
     YworldMin=parabolaOffsetY; YworldMax=XworldMax*2+YworldMin;
@@ -530,9 +513,31 @@ function getParabolaDiameter(){
 
     rayPathLengthDish = parabolaF + parabolaD*parabolaD/(16 * parabolaF);
     rayPathLength = parabolaF + parabolaD*parabolaD/(16 * parabolaF) +rayLength;
+}
 
+function getParabolaDiameter(){
+    parabolaDValue.innerHTML = parabolaDSlide.value+"mm";
+    parabolaD=parseInt(parabolaDSlide.value);
+
+    parabolaF= parabolaFD*parabolaD;
+    parabolaA= 1/(4*parabolaF);
+    focus=1/(4*parabolaA);
+
+   updateCommonParabolaGeometry();
    init();
    drawFeedLocationDimensions();
+};
+
+function getFD(){
+    parabolaFDValue.innerHTML = parabolaFDSlide.value;
+    parabolaFD=parseFloat(parabolaFDSlide.value);
+    parabolaF= parabolaFD*parabolaD;
+    parabolaA= 1/(4*parabolaF);
+    focus=1/(4*parabolaA);
+
+    updateCommonParabolaGeometry();
+    init();
+    drawFeedLocationDimensions();
 };
 
 
@@ -547,30 +552,6 @@ function getWavelength(){
 };
 
 
-function getFD(){
-    parabolaFDValue.innerHTML = parabolaFDSlide.value;
-    parabolaFD=parseFloat(parabolaFDSlide.value);
-    parabolaF= parabolaFD*parabolaD;
-    parabolaA= 1/(4*parabolaF);
-    focus=1/(4*parabolaA);
-
-    XworldMin=-(parabolaD/2)*1.2; XworldMax=(parabolaD/2)*1.2;
-    parabolaOffsetY=-parabolaD/60;
-    YworldMin=parabolaOffsetY; YworldMax=XworldMax*2+YworldMin;
-
-    F = new Vector2D(0, focus);
-
-    S = new Vector2D(0,parabolaF+0); //source vector; Starts at focus
-
-    //const rayLength = 2750; //ray length in the world view in mm
-    rayLength = parabolaD/2;
-
-    rayPathLengthDish = parabolaF + parabolaD*parabolaD/(16 * parabolaF);
-    rayPathLength = parabolaF + parabolaD*parabolaD/(16 * parabolaF) +rayLength;
-
-    init();
-    drawFeedLocationDimensions();
-};
 
 
 /********************************************************************************
@@ -670,6 +651,11 @@ function initDish(){
     drawParabolaV(wv, parabolaA, parabolaD);
 }
 
+
+/****************************************************************/
+/*****        Parabola and Ray Tracing Geometry             *****/
+/****************************************************************/
+
 function calcParabolaIncident(xWorld){
     var Incident = new Vector2D(0.0,0.0);
 
@@ -715,8 +701,7 @@ function drawRays(P, N, D, R, Ray0Emit, Rs, Source){
         wv.drawPDirArrow(P, Rs);
  }
 
-
-function updateRaysEmit(S){
+function updateWaveletsEmission(S){
     const rayIncrement = 30;
 
     var rayNum = 0;
@@ -726,15 +711,11 @@ function updateRaysEmit(S){
     var ReflectedDirecton = Vector2D(0.0,0.0);
     var ReflectionUnit   = Vector2D(0.0,0.0);
     var ReflectedRay = Vector2D(0.0,0.0);
-    var Ray0Emit = Vector2D(0.0,0.0);
+    var Ray0Emit = Vector2D(0.0,0.0);  //location of zero phase (ie reference phase)
     var xWorld;
-    var phase0Emits = [numWavelets]; //location of 0 phase
+    var wavelet0Emissions = [numWavelets]; //location of 0 phase
 
-/*
-    const xMin = -1.0*parabolaD/2;
-    const xMax = 1.0*parabolaD/2;
 
- */
     let xMin = minIlluminationPoint*parabolaD-parabolaD/2;
     let xMax = maxIlluminationPoint*parabolaD-parabolaD/2;
     let dx = (xMax-xMin)/numWavelets;
@@ -749,7 +730,7 @@ function updateRaysEmit(S){
         ReflectionUnit = ReflectedDirecton.unit();
 
         Ray0Emit = calcPhase0Point(Incident, IncidentDirection, ReflectionUnit);
-        phase0Emits[rayNum] =Ray0Emit; //phase0 points used in intensity subsampling;
+        wavelet0Emissions[rayNum] =Ray0Emit;
 
         // Draw some of the computer rays
         let notDraw = rayNum%rayIncrement;
@@ -759,28 +740,17 @@ function updateRaysEmit(S){
             wv.drawCircle(Ray0Emit,0.0075*parabolaD);  //draw phasezero points
         }
     }
-    return phase0Emits;
+    return wavelet0Emissions;
 }
 
-
-
-function updateImagePlane(){ //The diffraction instensity graph
+function calculateEnergyAtImagePlane(waveletsPhase0){ //The diffraction instensity graph
     var theta;
     var ImagePlaneRay = new Vector2D(0.0,0.0);
     var RI = new Vector2D(0.0,0.0); //reflection to image plane vector;
-    var energycurr;
-    var currPhase0Source = new Vector2D(0.0,0.0);
-    var currPhase0Emits;
+    var currWaveletPhase0 = new Vector2D(0.0,0.0);
 
     var energy = [numIntensityPoints]; //for the square of intensity (power)
-
-
-
-    drawImagePlane(wv);
-
-    dTheta = (maxTheta - minTheta)/numIntensityPoints;
-
-    let x_win_Range = parabolaD;
+    let dTheta = (maxTheta - minTheta)/numIntensityPoints;
 
     for (let i=0; i<=numIntensityPoints; i++) { //for each point on the intensity plot
         theta = (minTheta + i*dTheta);
@@ -788,39 +758,46 @@ function updateImagePlane(){ //The diffraction instensity graph
 
         let sum = 0.0;
 
-        for (let phase0SourceNum = 0; phase0SourceNum<= numberOfSources-1; phase0SourceNum++) { //for each phase0 wavelet from a particular source
-            currPhase0Emits = phase0EmitsArray[phase0SourceNum];
+        for (let Wi = 0; Wi <= numWavelets-1; Wi=Wi+1) {//for the ith wavelet, Wi, for the current source, currPhase0Emits
+            currWaveletPhase0 = waveletsPhase0[Wi];  //choose the zero phase location for the Wi wavelet from the array of wavelets
 
-            for (let Wi = 0; Wi <= numWavelets-1; Wi=Wi+1) {//for the ith wavelet, Wi, for the current source, currPhase0Emits
-                currPhase0Source = currPhase0Emits[Wi];
-                RI = ImagePlaneRay.subtract(currPhase0Source); //vector from phase 0 to current ImagePlane point;
-                let dist = RI.magnitude();
+            RI = ImagePlaneRay.subtract(currWaveletPhase0); //vector from phase 0 to current ImagePlane point;
+            let dist = RI.magnitude();
 
-                let nLambda = (dist % lambda); //get the phase in terms of a single wavelength
-                let phase = 2.0 * Math.PI / lambda * nLambda; //lambda is wavelength
-                let intcurr = Math.sin(phase);
-                sum = intcurr + sum;
-            }
+            let nLambda = (dist % lambda); //get the phase in terms of a single wavelength
+            let phase = 2.0 * Math.PI / lambda * nLambda; //lambda is wavelength
+            let intcurr = Math.sin(phase);
+            sum = intcurr + sum;
         }
-
         energy[i]=sum*sum;
+    }
+    return energy;
+}
 
+function drawEnergy(energy){ //The diffraction instensity graph
+    var theta;
+    var energyPlotVal;
 
+    drawImagePlane(wv);
+
+    let e_scale = intensityPlaneScale*intensityPlaneScale/(numberOfSources); //place holder for more than single source
+    let dTheta = (maxTheta - minTheta)/numIntensityPoints;
+
+    for (let i=1; i<=numIntensityPoints; i++) { //for each point on the intensity plot
+        theta = (minTheta + i*dTheta);
         let thetaWin = convertThetaToWin(theta,wv);
 
-        let e_scale = intensityPlaneScale*intensityPlaneScale/(numberOfSources); //bug when adding up multiple sources
-
-        energycurr = e_scale*energy[i];
+         energyPlotVal = e_scale*energy[i];
 
         if (fill) { //draw all points
-            wv.drawWinCircle(thetaWin, wv.y_win_min + imagePlaneHeight - energycurr, 1);  //draw filled power curve
+            wv.drawWinCircle(thetaWin, wv.y_win_min + imagePlaneHeight - energyPlotVal, 1);  //draw filled power curve
         } else { // If statement selects the maximum value for the current source point.
             let maxEnergy=0.0;
             let ints = Math.round(subSamplingNum/2);
             for (j=i-ints; j<i+ints; j=j+1){
                 if (j>=0){
-                    if (energy[j]>maxEnergy){
-                        maxEnergy=energy[j];
+                      if (energy[j]>maxEnergy){
+                          maxEnergy=energy[j];
                     }
                 }
             }
@@ -829,29 +806,9 @@ function updateImagePlane(){ //The diffraction instensity graph
     }
 }
 
-
-
-var phase0EmitsArray = [];
-
-function updateRaysEmitSpreadSource(){
-    const sourceSpread = 145.0;  //Septum feed is 145mm approx
-    const minSourceX = -sourceSpread/2;
-    const dSourceX = sourceSpread/(numberOfSources-1);
-
-    var SourceCurr = new Vector2D(0.0,0.0);
-    if (numberOfSources==1){// sourceSpread is underfined so setup as single source
-        sourceNum = 0;
-        SourceCurr.set(S.x,S.y);
-        phase0EmitsArray[sourceNum] = updateRaysEmit(SourceCurr);
-    }else {
-        for (let sourceNum = 0; sourceNum <= numberOfSources - 1; sourceNum++) {
-            let xSource = sourceNum * dSourceX + minSourceX;
-            SourceCurr.set(xSource + S.x, S.y)
-
-            phase0EmitsArray[sourceNum] = updateRaysEmit(SourceCurr);
-        }
-    }
-}
+/**********************************************************************************************************************/
+/*****                                           Main Line Initialization                                         *****/
+/**********************************************************************************************************************/
 
 window.innerHeight=2*window.innerWidth;
 
@@ -863,6 +820,9 @@ can.height=ParabolaWinHeight;
 
 var wv = new WorldView(ctx, XworldMin, XworldMax,YworldMin, YworldMax, 0, ParabolaWinWidth, 0, ParabolaWinHeight);
 
+var waveletsEmmision=[numWavelets];
+
+var energy = [numIntensityPoints];
 
 function init(){
     ParabolaWinWidth=window.innerWidth*0.8;
@@ -873,21 +833,12 @@ function init(){
 
     wv = new WorldView(ctx, XworldMin, XworldMax,YworldMin, YworldMax, 0, ParabolaWinWidth, 0, ParabolaWinHeight);
 
-
     initDish();
-    drawImagePlane(wv);
-    updateRaysEmitSpreadSource();
-    //draw ray and source structure
-
     drawSource();
     drawDishStructure();
 
-    updateImagePlane();
+    waveletsEmmision=updateWaveletsEmission(S);
+    energy=calculateEnergyAtImagePlane(waveletsEmmision);
+    drawEnergy(energy);
 }
 
-/*****************************************************************************************/
-/*
-log power graph calculation for graph display
-feed displacement display
- */
-/*****************************************************************************************/
