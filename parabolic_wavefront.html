@@ -39,44 +39,55 @@
       Parabola
   </canvas>
 
+  <div class="floatSliderContainer"><h2>Dish Geometry</h2>
+      <div class="floatSliderChild50"> diam
+          <input type="range" id="diameter" min = "500" max="10000" step ="100"  value="3000" oninput="getParabolaDiameter()"></input>
+          <output id="diameterValue"></output>
+      </div>
+      <div class="floatSliderChild50"> F/D:
+          <input type="range" id="fD" min = "0.1" max="2" step ="0.05" value="0.4" oninput="getFD()"></input>
+          <output id="fDvalue"></output>
+      </div>
+  </div>
 
-  <div class="slidercontainer">
-      <p>Diameter:
-            <input type="range" id="diameter" min = "500" max="10000" step ="100"  value="3000" oninput="getParabolaDiameter()"></input>
-            <output id="diameterValue"></output>
-      </p>
-      <p>Wavelength:
+  <div class="floatSliderContainer"><h2>Frequency Band</h2>
+      <div class="floatSliderChild50">wavelength
           <input type="range" id="wavelength" min = "10" max="300" step ="10"  value="230" oninput="getWavelength()"></input>
           <output id="wavelengthValue"></output>
-      </p>
-      <p>F/D:
-            <input type="range" id="fD" min = "0.1" max="2" step ="0.05" value="0.4" oninput="getFD()"></input>
-            <output id="fDvalue"></output>
-      </p>
-      <p>Num Wavelets:
+      </div>
+      <div class="floatSliderChild50">wavelets
           <input type="range" id="numWaveletsSlider" min="300" max="3000" step="300" value="300" oninput="getNumWavelets()"></input>
           <output id="numWaveletsValue"></output>
-      </p>
-      <p>Intensity Span:
-          <input type="range" id="spanSlider" min="5" max="25" step="5" value="25" oninput="getIntensitySpan()"></input>
-          <output id="spanValue"></output>
-      </p>
-      <p>Num Intensity points:
-          <input type="range" id="numIntensityPointsSlider" min="500" max="10000" step="100" value="3000" oninput="getNumIntensityPoints()"></input>
-          <output id="numIntensityPointsValue"></output>
-      </p>
-      <p>Intensity Subsampling Num:
-          <input type="range" id="subSamplingNumSlider" min="1" max="100" step="1" value="30" oninput="getSubSamplingNum()"></input>
+      </div>
+  </div>
+
+  <div class="floatSliderContainer"><h2>Power Plot</h2>
+      <div class="floatSliderChild30">span
+        <input type="range" id="spanSlider" class="slider30" min="5" max="25" step="5" value="25" oninput="getIntensitySpan()"></input>
+        <output id="spanValue"></output>
+      </div>
+      <div class="floatSliderChild30">points
+        <input type="range" id="numIntensityPointsSlider" class="slider30" min="500" max="10000" step="100" value="3000" oninput="getNumIntensityPoints()"></input>
+        <output id="numIntensityPointsValue"></output>
+      </div>
+      <div class="floatSliderChild30">subsmpl
+          <input type="range" id="subSamplingNumSlider" class="slider30" min="1" max="100" step="1" value="30" oninput="getSubSamplingNum()"></input>
           <output id="subSamplingNumValue"></output>
-      </p>
-      <p>Min Illumination Point:
+      </div>
+  </div>
+
+  <div class="floatSliderContainer"><h2>Illumination Range</h2>
+      <div class="floatSliderChild50">min
           <input type="range" id="minIlluminationPointSlider" min="0" max="1" step="0.05" value="0" oninput="getMinIlluminationPoint()"></input>
           <output id="minIlluminationPointValue"></output>
-      </p>
-      <p>Max Illumination Point:
+      </div>
+      <div class="floatSliderChild50">max
           <input type="range" id="maxIlluminationPointSlider" min="0" max="1" step="0.05" value="1" oninput="getMaxIlluminationPoint()"></input>
           <output id="maxIlluminationPointValue"></output>
-      </p>
+      </div>
+  </div>
+
+  <div class="slidercontainer">
       <p>
         <button type="button" id="dimensions" onclick="toggleDimensions()">Dimensions</button>
         <button type="button" id="fill" onclick="toggleFill()">Fill</button>

@@ -477,7 +477,7 @@ let parabolaD=parseInt(parabolaDValue.innerHTML);
 var lambdaSlide = document.getElementById("wavelength");
 var lambdaValue = document.getElementById("wavelengthValue");
 lambdaValue.innerHTML=lambdaSlide.value+"mm";
-let lambda=parseFloat(lambdaValue.innerHTML)*1.22; //1.22 is the Fraunhof correction factor for circular apertures
+let lambda=parseFloat(lambdaValue.innerHTML)*1.22; //1.22 is the Fraunhofer correction factor for circular apertures
 
 var parabolaFDSlide = document.getElementById("fD");
 var parabolaFDValue = document.getElementById("fDvalue");
@@ -810,10 +810,16 @@ function drawEnergy(energy){ //The diffraction instensity graph
 /*****                                           Main Line Initialization                                         *****/
 /**********************************************************************************************************************/
 
-window.innerHeight=2*window.innerWidth;
+function setupWindowParams(){
+    ParabolaWinHeight=window.innerHeight-500; //allow 500pxs for controls
+    ParabolaWinWidth=ParabolaWinHeight;
+    if (window.innerWidth<ParabolaWinWidth){ //width of window becomes limit
+        ParabolaWinWidth=window.innerWidth;
+        ParabolaWinHeight=ParabolaWinWidth;
+    }
+}
 
-ParabolaWinWidth=window.innerWidth*0.8;
-ParabolaWinHeight=ParabolaWinWidth;
+setupWindowParams();
 
 can.width=ParabolaWinWidth;
 can.height=ParabolaWinHeight;
@@ -825,9 +831,7 @@ var waveletsEmmision=[numWavelets];
 var energy = [numIntensityPoints];
 
 function init(){
-    ParabolaWinWidth=window.innerWidth*0.8;
-    ParabolaWinHeight=ParabolaWinWidth;
-
+     setupWindowParams();
     can.width=ParabolaWinWidth;
     can.height=ParabolaWinHeight;
 

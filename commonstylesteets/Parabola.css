@@ -26,11 +26,50 @@ body{
 window{
     width:600px;
     height:800px;
+}
 
+h1{
+    color: blue;
+    font-family: Arial;
+    font-size: 1.5em;
+}
+h2{
+    color: blue;
+    font-family: Arial;
+    font-size: 1.0em;
+    margin-top: 0em;
+    margin-bottom:0em;
+    position:relative;
+    text-align:center;
 }
 
 slidercontainer{
     width:100%
+}
+
+
+.floatSliderContainer {
+     border: 3px solid #fff;
+    width:90%;
+    padding: 20px;
+    margin:auto;
+    position:relative;
+}
+.floatSliderChild30 {
+    width: 30%;
+    float: left;
+    padding: 0px;
+   /* border: 2px solid red; */
+}
+.floatSliderChild50 {
+    width: 49%;
+    float: left;
+    padding: 0px;
+ /*   border: 2px solid red; */
+}
+
+.slider30{
+   width:30%;
 }
 
 #parabolaCanvas1{
